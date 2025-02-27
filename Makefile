@@ -1,5 +1,5 @@
 all: 
-	gcc -std=c11 -pedantic -pthread -lcurl crawler.c -o crawler 
+	gcc -std=c11 -pedantic -pthread -lcurl crawler.c -lcurl -o crawler
 
 install_curl:
 	sudo apt-get update
