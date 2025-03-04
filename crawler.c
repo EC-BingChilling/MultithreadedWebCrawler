@@ -13,5 +13,11 @@ int main(void)
         curl_easy_cleanup(curl);
     }
 
+    // 1. Input Parsing: Read URLs from a file
+
+    // 2. Threading
+    // a. Use pthreads to assign each URL to a thread for fetching
+    // b. Use pthreads to handle multiple web page fetches in parallel
+
     return 0;
 }
