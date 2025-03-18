@@ -15,8 +15,8 @@ char **parseFile(size_t *links);
 
 char **parseFile(size_t *links)
 {
-    // Precondition: String array created in main.
-    // Postcondition: Return a parsed urls.txt array.
+    // Precondition: String array and variable to hold length created in main.
+    // Postcondition: Return a parsed urls.txt array and updated length variable.
 
     // Open the file in read mode
     // FILE* is a file pointer
