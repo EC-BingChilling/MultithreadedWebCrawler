@@ -72,12 +72,6 @@ int main(void)
     int numLinks = info.lineCount;
     int maxLength = info.maxLength;
     int numThreads = 0;
-
-    if (numLinks < numThreads) {
-        numThreads = numLinks;
-    } else {
-        numThreads = NUM_THREADS;
-    }
     
     char arr[numLinks][maxLength];
 
