@@ -1,2 +1,3 @@
 https://en.wikipedia.org/wiki/Frog
 https://www.olivegarden.com/menu/classic-entrees
+https://www.w3schools.com/c/c_structs.php
