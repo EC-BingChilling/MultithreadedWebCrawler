@@ -78,10 +78,8 @@ int main(void)
     FILE * file = fopen("urls.txt", "r");
 
     if (file != NULL) {
-        int i = 0;
         while (fgets(arr[i], maxLength, file)) {
             printf("%s", arr[i]);
-            i++;
         }
 
         fclose(file);
