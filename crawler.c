@@ -1,6 +1,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
 #include <curl/curl.h>
 
 #define NUM_THREADS 4
@@ -65,15 +66,6 @@ struct FileInfo getFileInfo() {
 }
 
 
-
-
-
-// void * worker(void *arg) {
-
-// }
-
-
-
 int main(void)
 {
     struct FileInfo info = getFileInfo();
@@ -89,18 +81,6 @@ int main(void)
     
     char arr[numLinks][maxLength];
 
-    int work_per_thread = 0;
-
-    if ((numLinks % numThreads) == 0) {
-        work_per_thread = numLinks / numThreads;
-    } else {
-        work_per_thread = trunc(numLinks / numThreads) + 1;
-    }
-
-    char partitionedData[work_per_thread][maxLength];
-
-    
-    
     printf("The file has %d lines\n", numLinks);
     printf("The max len is: %d\n", maxLength);
 
@@ -108,7 +88,7 @@ int main(void)
 
     if (file != NULL) {
         int i = 0;
-        while (fgets(arr[i], maxLength, file) && i < numLinks) {
+        while (fgets(arr[i], maxLength, file)) {
             printf("%s", arr[i]);
             i++;
         }
@@ -118,15 +98,6 @@ int main(void)
     } else {
         fprintf(stderr, "Unable to open file!\n");
     }
-
-    // Partition Links
-    // int count = 0;
-    while (count < numLinks) {
-
-    }
-
-    
-    
 
 
     // CURL *curl = curl_easy_init();
