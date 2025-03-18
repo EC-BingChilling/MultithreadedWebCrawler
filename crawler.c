@@ -12,9 +12,6 @@ struct FileInfo {
     int maxLength;
 };
 
-// struct work {
-//     // link 
-// };
 
 struct FileInfo getFileInfo() {
     FILE *fp;
