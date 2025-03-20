@@ -29,16 +29,20 @@ struct Job {
     int linkLength;              // Length of the link string
 };
 
+
 struct JobQueueInfo {
     bool hasJob;
     struct Job job;
 };
 
+
+struct ThreadDataArgs {
+    int numJobs;
+    struct Job * jobs;
+};
+
 const int IMPORTANT_WORDS_SIZE = 1;
 const char * IMPORTANT_WORDS[] = {"Word"};
-
-
-
 
 
 void fetch_url(const char *url){ // function to fetch urls by taking url as input and fetch using libcurl
@@ -57,17 +61,14 @@ void fetch_url(const char *url){ // function to fetch urls by taking url as inpu
 }
 
 
-
 static size_t write_data(void *ptr, size_t size, size_t nmemb, void *stream)
 {
     size_t written = fwrite(ptr, size, nmemb, (FILE *)stream);
     return written;
 }
 
-void fetchUrlWithFile(char *url, const char * fileName) {
-    printf("\n%s", url);
 
-    // printf("Url %s", url);
+void fetchUrlToStore(char *url, const char * fileName) {
     CURL *curl_handle;
 
     FILE * pagefile;
@@ -85,8 +86,8 @@ void fetchUrlWithFile(char *url, const char * fileName) {
     /* Switch on full protocol/debug output while testing */
     // curl_easy_setopt(curl_handle, CURLOPT_VERBOSE, 1L);
     
-    /* disable progress meter, set to 0L to enable it */
-    // curl_easy_setopt(curl_handle, CURLOPT_NOPROGRESS, 1L);
+    // Tell libcurl to follow redirection */
+    curl_easy_setopt(curl_handle, CURLOPT_FOLLOWLOCATION, 1L);
     
     /* send all data to this function  */
     curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, write_data);
@@ -104,7 +105,7 @@ void fetchUrlWithFile(char *url, const char * fileName) {
         if (res != CURLE_OK) {
             fprintf(stderr, "Failed to fetch URL: %s\n", curl_easy_strerror(res));
         } else {
-            printf("%s content successfully written to %s\n", url, fileName);  // Debug output
+            printf("%s content successfully written to %s\n", url, fileName);
         }
     
         /* close the file */
@@ -113,8 +114,6 @@ void fetchUrlWithFile(char *url, const char * fileName) {
     
     /* cleanup curl stuff */
     curl_easy_cleanup(curl_handle);
-
-
 }
 
 
@@ -223,14 +222,10 @@ exit(1);
 }
 
 
-int getWorkPerThread(int numLinks, int numThreads) {
+int getMaxWorkPerThread(int numLinks, int numThreads) {
     int workPerThread = 0;
 
-    if ((numLinks % numThreads) == 0) {
-        workPerThread = numLinks / numThreads;
-    } else {
-        workPerThread = trunc(numLinks / numThreads) + 1;
-    }
+    workPerThread = trunc(numLinks / numThreads) + 1;
 
     return workPerThread;
 }
@@ -239,11 +234,8 @@ int getWorkPerThread(int numLinks, int numThreads) {
 void getJobs(struct Job jobs[], int numUrl, char **urlArray) {
     
     for (int i = 0; i < numUrl; i++) {
-        // Proper initialization of each Job element
         int fileNameLen = 50;
-
         char *filename = (char *)calloc(fileNameLen, sizeof(char)); // Allocate memory for filename
-
 
         // Create the filename as "page<count>.html"
         sprintf(filename, "page%d.html", i + 1);
@@ -261,9 +253,6 @@ void getJobs(struct Job jobs[], int numUrl, char **urlArray) {
         jobs[i].link[strcspn(jobs[i].link, "\n")] = 0;
         jobs[i].link[strcspn(jobs[i].link, "\r")] = 0;
 
-
-        // Print each URL from urlArray
-        // printf("%s\n", urlArray[i]);
     }
     
 }
@@ -289,18 +278,22 @@ struct JobQueueInfo getJobWithFifo(const struct Job jobs[], int numJobs) {
 }
 
 
-void worker(const struct Job jobs[], int numJobs) {
-    for (int count = 0; count < numJobs; count++) {
+void * worker(void * argument) {
+    struct ThreadDataArgs * args = (struct ThreadDataArgs *)argument;
+
+    int numJobs = args->numJobs;
+    struct Job * jobs = args->jobs;
+
+    for (int count = 0; count < getMaxWorkPerThread(numJobs, NUM_THREADS); count++) {
         struct JobQueueInfo temp = getJobWithFifo(jobs, numJobs);
 
         if (temp.hasJob) {
             struct Job job = temp.job;
 
-            fetchUrlWithFile(job.link, job.contentFilename);
-
-
+            fetchUrlToStore(job.link, job.contentFilename);
+            
         } else {
-            printf("No job available");
+            // printf("\nNo job available\n");
         }
         
     }
@@ -313,6 +306,7 @@ int main(void)
     char **urlArray;
     size_t urlNum;
 
+    pthread_t tid[NUM_THREADS];
 
     curl_global_init(CURL_GLOBAL_ALL);
 
@@ -322,42 +316,40 @@ int main(void)
     // For your convenience (Delete this block later once we understand!)
     struct Job jobs[urlNum]; // Array of 'urlNum' Job structs
 
+    // Use pthreads to handle multiple web page fetches in parallel
     getJobs(jobs, urlNum, urlArray);
 
-    worker(jobs, urlNum);
+    struct ThreadDataArgs args = {urlNum, jobs};
 
+    for (int i = 0; i < NUM_THREADS; i++) {
+        if(pthread_create(&tid[i], NULL, &worker, &args) != 0) {
+            perror("Failed to creater thread");
+        }
+    }
 
-    for (int i = 0; i < urlNum; i++) {
-        printf("Job %d:\n", i + 1);
-        printf("  Link: %s\n", jobs[i].link);
-        printf("  Link Length: %d\n", jobs[i].linkLength);
-        printf("  Content Filename: %s\n", jobs[i].contentFilename);
-        printf("  Content Filename Length: %d\n", jobs[i].contentFileNameLength);
-
-        printf("\n");
+    for (int i = 0; i < NUM_THREADS; i++) {
+        if(pthread_join(tid[i], NULL) != 0) {
+            perror("Failed to join thread");
+        }
     }
     
-
-    // 2. Threading
-    // a. Use pthreads to assign each URL to a thread for fetching
-    // b. Use pthreads to handle multiple web page fetches in parallel
-
-
-
-
-
-
 
     // **********************DEALLOCATION***********************************
     // Free each individual url
     for (int i = 0; i< urlNum; i++)
+    {
         free(urlArray[i]);
+    }
+
+    for (int i = 0; i < urlNum; i++) {
+        // Free the dynamically allocated Filename for each job
+        free(jobs[i].contentFilename);
+    }
+        
     
     free(urlArray);
 
     curl_global_cleanup();
-
-
 
     return 0;
 }
