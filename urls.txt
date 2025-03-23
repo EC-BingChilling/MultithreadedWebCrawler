@@ -1,3 +1,15 @@
 https://en.wikipedia.org/wiki/Frog
 https://www.olivegarden.com/menu/classic-entrees
 https://www.w3schools.com/c/c_structs.php
+https://www.google.com
+https://www.youtube.com
+https://www.amazon.com
+https://www.facebook.com
+https://www.wikipedia.org
+https://www.reddit.com
+https://www.twitter.com
+https://www.instagram.com
+https://www.linkedin.com
+https://www.pinterest.com
+hbc
+h2
