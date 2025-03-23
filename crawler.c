@@ -103,7 +103,7 @@ void fetchUrlToStore(char *url, const char * fileName) {
         CURLcode res = curl_easy_perform(curl_handle);
 
         if (res != CURLE_OK) {
-            fprintf(stderr, "Failed to fetch URL: %s\n", curl_easy_strerror(res));
+            fprintf(stderr, "Failed to fetch %s: %s\n", url, curl_easy_strerror(res));
         } else {
             printf("%s content successfully written to %s\n", url, fileName);
         }
