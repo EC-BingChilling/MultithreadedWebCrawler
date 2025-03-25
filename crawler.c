@@ -7,6 +7,8 @@
 #include <math.h>
 #include <stdbool.h>
 #include <pthread.h> 
+#include <assert.h>
+#include <ctype.h>
 
 #define ARRAY_LENGTH 100
 # define URL_LENGTH 512
@@ -133,7 +135,7 @@ char **parseFile(size_t *links)
     {
         //printf("Error message: %s\n", strerror(errno));
         perror("Error message");    // does the same thing as above
-exit(1);
+        exit(1);
     }
 
     // Count the number of lines
@@ -300,6 +302,82 @@ void * worker(void * argument) {
 }
 
 
+int countOccurrencesOfWord(const char * word, char * sentence, int sentenceLength) {
+    char substr[strlen(word) + 10];
+    char temp[strlen(sentence) + 10];
+
+    // Correct for additional space (" meow" is valid " meowmeow" is not) this makes " meow" = " meow "
+    // strcat(sentence, space);
+    sprintf(temp, " %s ", sentence);
+    sprintf(substr, " %s ", word);
+    
+    for (int count = 0; count < strlen(substr); count++) {
+        substr[count] = tolower(substr[count]);
+    }
+
+    for (int count = 0; count < strlen(temp); count++) {
+        if (!isalpha(temp[count])) {
+            temp[count] = ' ';
+        }
+        
+        temp[count] = tolower(temp[count]);
+    }
+
+    int count = 0;
+    char *tmp = temp;
+
+    while(tmp = strstr(tmp, substr))
+    {
+        count++;
+        tmp++;  // Increment temp pointer to remove first element making temp no longer valid substr if it is last remaining substr
+    }
+
+    return count;
+}
+
+
+int testWordOccurrences() {
+    char sentence[] = "<p>A <b>frog</b> is any member of a diverse and largely <a href=\"/wiki/Carnivore\" title=\"Carnivore\">carnivorous</a> group of short-bodied, tailless <a href=\"/wiki/Amphibian\" title=\"Amphibian\">amphibians</a> composing the <a href=\"/wiki/Order_(biology)\" title=\"Order (biology)\">order</a> <b>Anura</b><sup id=\"cite_ref-AOTW_1-0\" class=\"reference\"><a href=\"#cite_note-AOTW-1\"><span class=\"cite-bracket\">[</span>1<span class=\"cite-bracket\">]</span></a></sup> (coming from the <a href=\"/wiki/Ancient_Greek\" title=\"Ancient Greek\">Ancient Greek</a> <span title=\"Ancient Greek (to 1453)-language text\"><span lang=\"grc\">ἀνούρα</span></span>, literally 'without tail').</p>";
+    int num = countOccurrencesOfWord("frog", sentence, strlen(sentence));
+    assert(num == 1);
+
+    num = countOccurrencesOfWord("meow", "homeowner", strlen("homeowner"));
+    assert(num == 0);
+
+    num = countOccurrencesOfWord("Word", "Word", strlen("Word"));
+    assert(num == 1);  
+
+    num = countOccurrencesOfWord("word", "xyz word abc", strlen("xyz word abc"));
+    assert(num == 1);  
+
+    num = countOccurrencesOfWord("Word", "Word", strlen("Word"));
+    assert(num == 1);  
+
+    num = countOccurrencesOfWord("Word", "", 0);
+    assert(num == 0);  
+
+    num = countOccurrencesOfWord("Word", "word Word", strlen("word Word"));
+    assert(num == 2);  
+
+    num = countOccurrencesOfWord("sub", "substring sub", strlen("substring sub"));
+    assert(num == 1);
+
+    // Note how the following fails since 123 are numbers, however we dont care about this case since all valid words being searched will not appear like this
+    // num = countOccurrencesOfWord("test", "123test123test", strlen("123test123test"));
+    // assert(num == 0);
+
+
+    printf("All occurrences tests passed\n");
+}
+
+
+void runtests() {
+    testWordOccurrences();
+
+}
+
+
+
 // main
 int main(void)
 {
@@ -316,11 +394,11 @@ int main(void)
     // For your convenience (Delete this block later once we understand!)
     struct Job jobs[urlNum]; // Array of 'urlNum' Job structs
 
-    // Use pthreads to handle multiple web page fetches in parallel
     getJobs(jobs, urlNum, urlArray);
-
+    
     struct ThreadDataArgs args = {urlNum, jobs};
-
+    
+    // Use pthreads to handle multiple web page fetches in parallel
     for (int i = 0; i < NUM_THREADS; i++) {
         if(pthread_create(&tid[i], NULL, &worker, &args) != 0) {
             perror("Failed to creater thread");
@@ -332,6 +410,10 @@ int main(void)
             perror("Failed to join thread");
         }
     }
+
+
+    printf("\n\n\nRunning Tests:\n");
+    runtests();
     
 
     // **********************DEALLOCATION***********************************
@@ -345,7 +427,6 @@ int main(void)
         // Free the dynamically allocated Filename for each job
         free(jobs[i].contentFilename);
     }
-        
     
     free(urlArray);
 
