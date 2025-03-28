@@ -164,9 +164,10 @@ char **parseFile(size_t *links)
                 // Constrain
                 urlBank[charsRead] = realloc(urlBank[numOfUrls], charsRead);
                 urlBank[numOfUrls][charsRead] = '\0';
+                printf("Just finished %zu: %s\n",numOfUrls, urlBank[numOfUrls]);
                 numOfUrls++;
             }
-
+            printf("What is at index 5?: %s\n", urlBank[5]);
             break;
         }
         
@@ -179,11 +180,14 @@ char **parseFile(size_t *links)
         urlBank[numOfUrls][charsRead] = c;
         charsRead++;
 
-        if (c == '\n') // end of url
+        if (c == '\n' || c== '\r') // end of url
         {
             // Constrain the length of the url to also contain the null terminator
             urlBank[numOfUrls] = realloc(urlBank[numOfUrls], charsRead);
             urlBank[numOfUrls][charsRead-1] = '\0';                                     // -1 so we don't catch \n
+
+            printf("Just finished %zu: %s\n",numOfUrls, urlBank[numOfUrls]);
+            printf("What is at index 5?: %s\n", urlBank[5]);
 
             // Prepare for next url
             numOfUrls++;
@@ -214,6 +218,14 @@ char **parseFile(size_t *links)
     urlBank = realloc(urlBank, sizeof(char *) * numOfUrls);
 
     fclose(file);
+
+    printf("numOfUrls:%zu\n",numOfUrls);
+    printf("\nLast line is: %s\n", urlBank[numOfUrls-1]);
+    printf("There are %zu chars in this url. The last char is: '%c'\n", strlen(urlBank[numOfUrls-1]), urlBank[numOfUrls-1][strlen(urlBank[numOfUrls-1])]);
+    for (int i = 0; i <= strlen(urlBank[numOfUrls-1]); i++)
+    {
+        printf("%d: '%c'\n", i, urlBank[numOfUrls-1][i]);
+    }
 
     // "return" the number of urls by directly changing the value (from main) via reference
     *links = numOfUrls;
@@ -390,6 +402,10 @@ int main(void)
 
     // 1. Input Parsing: Read URLs from a file
     urlArray = parseFile(&urlNum);  //we pass in the address with & to allow the function to change urlNum
+/*
+    for (int i = 0; i <urlNum; i++){
+        printf("%d: %s\n",i, urlArray[i]);
+    }*/
 
     // For your convenience (Delete this block later once we understand!)
     struct Job jobs[urlNum]; // Array of 'urlNum' Job structs
