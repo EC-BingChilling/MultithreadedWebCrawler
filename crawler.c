@@ -159,15 +159,17 @@ char **parseFile(size_t *links)
         if (c == EOF)
         {
             // In case the last URL doesn't end in a \n
+            printf("***charsRead: %zu\n",charsRead);
             if (charsRead != 0)
             {
+                //printf("What is at index 5? (inside inner loop): %s\n", urlBank[5]);
                 // Constrain
-                urlBank[charsRead] = realloc(urlBank[numOfUrls], charsRead);
+                urlBank[numOfUrls] = realloc(urlBank[numOfUrls], charsRead);
                 urlBank[numOfUrls][charsRead] = '\0';
-                printf("Just finished %zu: %s\n",numOfUrls, urlBank[numOfUrls]);
+                //printf("Just finished %zu: %s\n",numOfUrls, urlBank[numOfUrls]);
                 numOfUrls++;
             }
-            printf("What is at index 5?: %s\n", urlBank[5]);
+            //printf("What is at index 5?: %s\n", urlBank[5]);
             break;
         }
         
@@ -402,10 +404,10 @@ int main(void)
 
     // 1. Input Parsing: Read URLs from a file
     urlArray = parseFile(&urlNum);  //we pass in the address with & to allow the function to change urlNum
-/*
+
     for (int i = 0; i <urlNum; i++){
         printf("%d: %s\n",i, urlArray[i]);
-    }*/
+    }
 
     // For your convenience (Delete this block later once we understand!)
     struct Job jobs[urlNum]; // Array of 'urlNum' Job structs
