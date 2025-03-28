@@ -162,7 +162,7 @@ char **parseFile(size_t *links)
             if (charsRead != 0)
             {
                 // Constrain
-                urlBank[charsRead] = realloc(urlBank[numOfUrls], charsRead);
+                urlBank[numOfUrls] = realloc(urlBank[numOfUrls], charsRead);
                 urlBank[numOfUrls][charsRead] = '\0';
                 numOfUrls++;
             }
