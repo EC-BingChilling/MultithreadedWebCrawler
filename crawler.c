@@ -381,8 +381,8 @@ void runtests() {
 // main
 int main(void)
 {
-    char **urlArray;
-    size_t urlNum;
+    char **urlArray;                    // establish array of strings
+    size_t urlNum;                      // # of urls in said array
 
     pthread_t tid[NUM_THREADS];
 
@@ -391,10 +391,9 @@ int main(void)
     // 1. Input Parsing: Read URLs from a file
     urlArray = parseFile(&urlNum);  //we pass in the address with & to allow the function to change urlNum
 
-    // For your convenience (Delete this block later once we understand!)
-    struct Job jobs[urlNum]; // Array of 'urlNum' Job structs
-
-    getJobs(jobs, urlNum, urlArray);
+    // This Struct will contain for each url: url, html file name, said name's length, url length
+    struct Job jobs[urlNum];            // Array of 'urlNum' Job structs
+    getJobs(jobs, urlNum, urlArray);    // Populate the structs with data
     
     struct ThreadDataArgs args = {urlNum, jobs};
     
