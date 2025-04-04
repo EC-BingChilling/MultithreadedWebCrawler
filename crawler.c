@@ -479,3 +479,21 @@ int main(void)
 
     return 0;
 }
+
+
+// int main(void)
+// {
+//     FILE *file = fopen("urls.txt","r"); // open urls.txt in read mode
+//     if (file == NULL){ // check if fopen failed
+//         fprintf(stderr, "Error: Could not open urls.txt \n"); // print error message to standard ouput
+//         return 1; // exit with error status
+//     }
+
+//     char url[1024]; // buffer to store each line
+//     while (fgets(url, sizeof(url),file)){ // read each line
+//         url[strcspn(url, "\n")] = 0; // remove newline character
+//         fetch_url(url); // call fetch url() to get the webpage
+//     }
+//     fclose(file); // close file
+//     return 0; // exit successfully
+// }
