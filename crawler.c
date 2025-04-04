@@ -1,3 +1,4 @@
+#define _GNU_SOURCE // For getline
 #include <string.h> // For string manipulation
 #include <stdio.h> // i/o
 #include <curl/curl.h> // libcurl for http requests
@@ -22,6 +23,7 @@ pthread_mutex_t lock;
 
 // Prototypes
 char **parseFile(size_t *links);
+void parseHTML(char *fileName);
 
 // Define a structure for Job
 struct Job {
@@ -335,6 +337,40 @@ int countOccurrencesOfWord(const char * word, char * sentence, int sentenceLengt
     return count;
 }
 
+void parseHTML(char *fileName)
+{
+    // Precondition: Input the HTML file name.
+    // Postcondition: Print to the console word count results.
+
+    // Loop to make a counter for each word in list?
+    int theCounter = 0; //test
+
+    // read only mode
+    FILE* file = fopen(fileName, "r");
+    char *line = NULL;          // Create a string so we are able to call our word counting function on it once we finish a line
+    size_t length = 0;
+    size_t read;
+
+    if (file == NULL)
+    {
+        perror("Error message");
+        exit(1);
+    }
+
+    // look at documentation later
+    while ((read = getline(&line, &length, file) != -1))
+    {
+        theCounter += countOccurrencesOfWord("the", line, length);
+    }
+
+    // Output
+    printf("Occurrences from %s\n", fileName);
+    printf(" the: %d\n\n", theCounter); //test
+    
+    // Close file
+    fclose(file);
+    return;
+}
 
 int testWordOccurrences() {
     char sentence[] = "<p>A <b>frog</b> is any member of a diverse and largely <a href=\"/wiki/Carnivore\" title=\"Carnivore\">carnivorous</a> group of short-bodied, tailless <a href=\"/wiki/Amphibian\" title=\"Amphibian\">amphibians</a> composing the <a href=\"/wiki/Order_(biology)\" title=\"Order (biology)\">order</a> <b>Anura</b><sup id=\"cite_ref-AOTW_1-0\" class=\"reference\"><a href=\"#cite_note-AOTW-1\"><span class=\"cite-bracket\">[</span>1<span class=\"cite-bracket\">]</span></a></sup> (coming from the <a href=\"/wiki/Ancient_Greek\" title=\"Ancient Greek\">Ancient Greek</a> <span title=\"Ancient Greek (to 1453)-language text\"><span lang=\"grc\">ἀνούρα</span></span>, literally 'without tail').</p>";
@@ -414,6 +450,16 @@ int main(void)
     printf("\n\n\nRunning Tests:\n");
     runtests();
     
+    // Word Counting per html file
+    // checking for "the" as a test.
+    // Still needs the actual important words, which may vary
+    for (int i = 0; i < urlNum; i++)
+    {   
+        parseHTML(jobs[i].contentFilename);
+    }
+
+
+
 
     // **********************DEALLOCATION***********************************
     // Free each individual url
