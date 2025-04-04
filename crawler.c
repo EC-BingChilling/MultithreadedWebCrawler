@@ -15,13 +15,6 @@
 # define URL_LENGTH 512
 #define NUM_THREADS 4
 
-void fetch_url(const char *url){ // function to fetch urls by taking url as input and fetch using libcurl
-    CURL *curl = curl_easy_init(); // initialize curl session (curl object)
-    if (curl){
-        printf("Fetching %s\n", url); // print url being fetched
-        curl_easy_setopt(curl, CURLOPT_URL, url); // set url for the request
-        CURLcode res = curl_easy_perform(curl); //perform http request
-
 extern int errno; // for error messages
 
 pthread_mutex_t lock; 
