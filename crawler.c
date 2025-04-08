@@ -12,17 +12,12 @@
 #include <ctype.h>
 
 #define ARRAY_LENGTH 100
-# define URL_LENGTH 512
+#define URL_LENGTH 512
 #define NUM_THREADS 4
 
 extern int errno; // for error messages
 
 pthread_mutex_t lock; 
-
-
-// Prototypes
-char **parseFile(size_t *links);
-void parseHTML(char *fileName);
 
 // Define a structure for Job
 struct Job {
@@ -48,6 +43,46 @@ const int IMPORTANT_WORDS_SIZE = 1;
 const char * IMPORTANT_WORDS[] = {"Word"};
 
 
+// Prototypes
+
+// Reads Urls.txt for URLs to fetch
+char **parseFile(size_t *links);
+
+// Reads contents of stored html files
+void parseHTML(char *fileName);
+
+// Function to fetch URL using libcurl
+void fetch_url(const char *url);
+
+// Function to write data to file while fetching URL
+static size_t write_data(void *ptr, size_t size, size_t nmemb, void *stream);
+
+// Function to fetch URL content and store it into a file using Libcurl
+void fetchUrlToStore(char *url, const char *fileName);
+
+// Function to calculate the maximum number of URLs each thread can work on
+int getMaxWorkPerThread(int numLinks, int numThreads);
+
+// Function to populate the job structs with URLs and filenames
+void getJobs(struct Job jobs[], int numUrl, char **urlArray);
+
+// Function to get a job from the job queue using FIFO (Array is used as a queue using shared index)
+struct JobQueueInfo getJobWithFifo(const struct Job jobs[], int numJobs);
+
+// Worker function for handling the fetch and storage tasks for each URL
+void *worker(void *argument);
+
+// Function to count the occurrences of a word in a sentence
+int countOccurrencesOfWord(const char *word, char *sentence, int sentenceLength);
+
+// Test function for word occurrences
+int testWordOccurrences();
+
+// Function to run all tests
+void runtests(void);
+
+
+// Function to fetch URL using libcurl
 void fetch_url(const char *url){ // function to fetch urls by taking url as input and fetch using libcurl
     CURL *curl = curl_easy_init(); // initialize curl session (curl object)
     if (curl){
@@ -64,6 +99,7 @@ void fetch_url(const char *url){ // function to fetch urls by taking url as inpu
 }
 
 
+// Function to write data to file while fetching URL
 static size_t write_data(void *ptr, size_t size, size_t nmemb, void *stream)
 {
     size_t written = fwrite(ptr, size, nmemb, (FILE *)stream);
@@ -71,6 +107,7 @@ static size_t write_data(void *ptr, size_t size, size_t nmemb, void *stream)
 }
 
 
+// Function to fetch URL content and store it into a file using Libcurl
 void fetchUrlToStore(char *url, const char * fileName) {
     CURL *curl_handle;
 
@@ -118,7 +155,6 @@ void fetchUrlToStore(char *url, const char * fileName) {
     /* cleanup curl stuff */
     curl_easy_cleanup(curl_handle);
 }
-
 
 
 char **parseFile(size_t *links)
@@ -225,6 +261,7 @@ char **parseFile(size_t *links)
 }
 
 
+// Function to calculate the maximum number of URLs each thread can work on
 int getMaxWorkPerThread(int numLinks, int numThreads) {
     int workPerThread = 0;
 
@@ -234,6 +271,7 @@ int getMaxWorkPerThread(int numLinks, int numThreads) {
 }
 
 
+// Function to populate the job structs with URLs and filenames
 void getJobs(struct Job jobs[], int numUrl, char **urlArray) {
     
     for (int i = 0; i < numUrl; i++) {
@@ -261,6 +299,7 @@ void getJobs(struct Job jobs[], int numUrl, char **urlArray) {
 }
 
 
+// Function to get a job from the job queue using FIFO (Array is used as a queue using shared index)
 struct JobQueueInfo getJobWithFifo(const struct Job jobs[], int numJobs) {
     pthread_mutex_lock(&lock); 
 
@@ -281,6 +320,7 @@ struct JobQueueInfo getJobWithFifo(const struct Job jobs[], int numJobs) {
 }
 
 
+// Worker function for handling the fetch and storage tasks for each URL
 void * worker(void * argument) {
     struct ThreadDataArgs * args = (struct ThreadDataArgs *)argument;
 
@@ -303,6 +343,7 @@ void * worker(void * argument) {
 }
 
 
+// Function to count the occurrences of a word in a sentence
 int countOccurrencesOfWord(const char * word, char * sentence, int sentenceLength) {
     char substr[strlen(word) + 10];
     char temp[strlen(sentence) + 10];
@@ -335,6 +376,7 @@ int countOccurrencesOfWord(const char * word, char * sentence, int sentenceLengt
 
     return count;
 }
+
 
 void parseHTML(char *fileName)
 {
@@ -371,6 +413,8 @@ void parseHTML(char *fileName)
     return;
 }
 
+
+// Test function for word occurrences
 int testWordOccurrences() {
     char sentence[] = "<p>A <b>frog</b> is any member of a diverse and largely <a href=\"/wiki/Carnivore\" title=\"Carnivore\">carnivorous</a> group of short-bodied, tailless <a href=\"/wiki/Amphibian\" title=\"Amphibian\">amphibians</a> composing the <a href=\"/wiki/Order_(biology)\" title=\"Order (biology)\">order</a> <b>Anura</b><sup id=\"cite_ref-AOTW_1-0\" class=\"reference\"><a href=\"#cite_note-AOTW-1\"><span class=\"cite-bracket\">[</span>1<span class=\"cite-bracket\">]</span></a></sup> (coming from the <a href=\"/wiki/Ancient_Greek\" title=\"Ancient Greek\">Ancient Greek</a> <span title=\"Ancient Greek (to 1453)-language text\"><span lang=\"grc\">ἀνούρα</span></span>, literally 'without tail').</p>";
     int num = countOccurrencesOfWord("frog", sentence, strlen(sentence));
@@ -406,11 +450,11 @@ int testWordOccurrences() {
 }
 
 
+// Function to run all tests
 void runtests() {
     testWordOccurrences();
 
 }
-
 
 
 // main
