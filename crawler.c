@@ -5,9 +5,9 @@
 #include <errno.h> // error numbers so we don't type messages manually
 #include <stdlib.h> // Add mem alloc
 #include <string.h> // for error messages
-#include <math.h>
-#include <stdbool.h>
-#include <pthread.h> 
+#include <math.h> // For truncate
+#include <stdbool.h> // For Boolean
+#include <pthread.h> // For Multithreading
 #include <assert.h>
 #include <ctype.h>
 
@@ -17,7 +17,7 @@
 
 extern int errno; // for error messages
 
-pthread_mutex_t lock; 
+pthread_mutex_t LOCK;
 
 // Define a structure for Job
 struct Job {
@@ -34,7 +34,7 @@ struct JobQueueInfo {
 };
 
 
-struct ThreadDataArgs {
+struct ThreadArgs {
     int numJobs;
     struct Job * jobs;
 };
@@ -150,6 +150,8 @@ void fetchUrlToStore(char *url, const char * fileName) {
     
         /* close the file */
         fclose(pagefile);
+    } else {
+        fprintf(stderr, "Failed to open file %s for writing\n", fileName);
     }
     
     /* cleanup curl stuff */
@@ -265,7 +267,7 @@ char **parseFile(size_t *links)
 int getMaxWorkPerThread(int numLinks, int numThreads) {
     int workPerThread = 0;
 
-    workPerThread = trunc(numLinks / numThreads) + 1;
+    workPerThread = trunc(numLinks / numThreads) + 1; // There can be at most (num jobs / numThreads) + 1 jobs per thread. Trivial to prove
 
     return workPerThread;
 }
@@ -291,6 +293,7 @@ void getJobs(struct Job jobs[], int numUrl, char **urlArray) {
             .linkLength = strlen(urlArray[i]),        // Set to length of the URL string
         };
     
+        // Removes \n and \r from string
         jobs[i].link[strcspn(jobs[i].link, "\n")] = 0;
         jobs[i].link[strcspn(jobs[i].link, "\r")] = 0;
 
@@ -301,7 +304,7 @@ void getJobs(struct Job jobs[], int numUrl, char **urlArray) {
 
 // Function to get a job from the job queue using FIFO (Array is used as a queue using shared index)
 struct JobQueueInfo getJobWithFifo(const struct Job jobs[], int numJobs) {
-    pthread_mutex_lock(&lock); 
+    pthread_mutex_lock(&LOCK); // Protect Critical Section with mutex
 
     static int fifoIndex = 0;
     struct JobQueueInfo info;
@@ -314,7 +317,7 @@ struct JobQueueInfo getJobWithFifo(const struct Job jobs[], int numJobs) {
         info.hasJob = false;
     }
 
-    pthread_mutex_unlock(&lock); 
+    pthread_mutex_unlock(&LOCK); 
 
     return info;
 }
@@ -322,7 +325,7 @@ struct JobQueueInfo getJobWithFifo(const struct Job jobs[], int numJobs) {
 
 // Worker function for handling the fetch and storage tasks for each URL
 void * worker(void * argument) {
-    struct ThreadDataArgs * args = (struct ThreadDataArgs *)argument;
+    struct ThreadArgs * args = (struct ThreadArgs *)argument; // Build ThreadArgs for worker using type casting
 
     int numJobs = args->numJobs;
     struct Job * jobs = args->jobs;
@@ -368,10 +371,11 @@ int countOccurrencesOfWord(const char * word, char * sentence, int sentenceLengt
     int count = 0;
     char *tmp = temp;
 
+    // Count all substrings in line
     while(tmp = strstr(tmp, substr))
     {
         count++;
-        tmp++;  // Increment temp pointer to remove first element making temp no longer valid substr if it is last remaining substr
+        tmp++;  // Increment temp pointer to remove first element making temp no longer valid substr if it is last remaining substr (Avoid Infinite Loop)
     }
 
     return count;
@@ -474,7 +478,7 @@ int main(void)
     struct Job jobs[urlNum];            // Array of 'urlNum' Job structs
     getJobs(jobs, urlNum, urlArray);    // Populate the structs with data
     
-    struct ThreadDataArgs args = {urlNum, jobs};
+    struct ThreadArgs args = {urlNum, jobs};
     
     // Use pthreads to handle multiple web page fetches in parallel
     for (int i = 0; i < NUM_THREADS; i++) {
@@ -483,6 +487,7 @@ int main(void)
         }
     }
 
+    // Wait for all workers to complete before proceeding
     for (int i = 0; i < NUM_THREADS; i++) {
         if(pthread_join(tid[i], NULL) != 0) {
             perror("Failed to join thread");
