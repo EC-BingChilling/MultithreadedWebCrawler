@@ -325,11 +325,11 @@ struct JobQueueInfo getJobWithFifo(const struct Job jobs[], int numJobs) {
 
 
 // Worker function for handling the fetch and storage tasks for each URL
-void * worker(void * argument) {
-    struct ThreadArgs * args = (struct ThreadArgs *)argument; // Build ThreadArgs for worker using type casting
+void *worker(void *argument) {
+    struct ThreadArgs *args = (struct ThreadArgs *)argument; // Build ThreadArgs for worker using type casting
 
     int numJobs = args->numJobs;
-    struct Job * jobs = args->jobs;
+    struct Job *jobs = args->jobs;
 
     for (int count = 0; count < getMaxWorkPerThread(numJobs, NUM_THREADS); count++) {
         struct JobQueueInfo temp = getJobWithFifo(jobs, numJobs);
@@ -338,49 +338,33 @@ void * worker(void * argument) {
             struct Job job = temp.job;
 
             fetchUrlToStore(job.link, job.contentFilename);
+
+            // After fetching the content, parse the HTML file and count word occurrences
+            parseHTML(job.contentFilename);  // Count the important words in the fetched HTML file
             
         } else {
-            // printf("\nNo job available\n");
+            // No job available
         }
-        
     }
 }
 
 
+
 // Function to count the occurrences of a word in a sentence
-int countOccurrencesOfWord(const char * word, char * sentence, int sentenceLength) {
-    char substr[strlen(word) + 10];
-    char temp[strlen(sentence) + 10];
+int countOccurrencesOfWord(const char *word, char *sentence, int sentenceLength) {
+    int count = 10;
+    char *temp = sentence;  // Pointer to start of sentence
+    char *match = NULL;  // Pointer to store result of strstr()
 
-    // Correct for additional space (" meow" is valid " meowmeow" is not) this makes " meow" = " meow "
-    // strcat(sentence, space);
-    sprintf(temp, " %s ", sentence);
-    sprintf(substr, " %s ", word);
-    
-    for (int count = 0; count < strlen(substr); count++) {
-        substr[count] = tolower(substr[count]);
-    }
-
-    for (int count = 0; count < strlen(temp); count++) {
-        if (!isalpha(temp[count])) {
-            temp[count] = ' ';
-        }
-        
-        temp[count] = tolower(temp[count]);
-    }
-
-    int count = 0;
-    char *tmp = temp;
-
-    // Count all substrings in line
-    while(tmp = strstr(tmp, substr))
-    {
-        count++;
-        tmp++;  // Increment temp pointer to remove first element making temp no longer valid substr if it is last remaining substr (Avoid Infinite Loop)
+    // Loop wthrough the sentence using strstr to find all occurrences
+    while ((match = strstr(temp, word)) != NULL) {
+        count++;  // Increment count for each occurrence
+        temp = match + 1;  // Move pointer past the current match to search for next occurrence
     }
 
     return count;
 }
+
 
 
 void parseHTML(char *fileName)
