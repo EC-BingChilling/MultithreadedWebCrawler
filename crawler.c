@@ -39,8 +39,9 @@ struct ThreadArgs {
     struct Job * jobs;
 };
 
-const int IMPORTANT_WORDS_SIZE = 1;
-const char * IMPORTANT_WORDS[] = {"Word"};
+const int IMPORTANT_WORDS_SIZE = 3;
+const char * IMPORTANT_WORDS[] = {"data", "science", "algorithm"};
+
 
 
 // Prototypes
@@ -387,35 +388,43 @@ void parseHTML(char *fileName)
     // Precondition: Input the HTML file name.
     // Postcondition: Print to the console word count results.
 
-    // Loop to make a counter for each word in list?
-    int theCounter = 0; //test
+    // Array to hold counters for each word in the IMPORTANT_WORDS list
+    int wordCounters[IMPORTANT_WORDS_SIZE]; 
+    for (int i = 0; i < IMPORTANT_WORDS_SIZE; i++) {
+        wordCounters[i] = 0; // Initialize counters to zero
+    }
 
-    // read only mode
+    // Open the HTML file in read-only mode
     FILE* file = fopen(fileName, "r");
-    char *line = NULL;          // Create a string so we are able to call our word counting function on it once we finish a line
-    size_t length = 0;
-    size_t read;
+    char *line = NULL;          // Create a string to store each line for processing
+    size_t length = 0;          // Track the length of the line read
 
-    if (file == NULL)
-    {
-        perror("Error message");
+    if (file == NULL) {
+        perror("Error message"); // Print error and exit if file can't be opened
         exit(1);
     }
 
-    // look at documentation later
-    while ((read = getline(&line, &length, file) != -1))
-    {
-        theCounter += countOccurrencesOfWord("the", line, length);
+    // Read the file line by line
+    while (getline(&line, &length, file) != -1) {
+        // For each line, count the occurrences of every important word
+        for (int i = 0; i < IMPORTANT_WORDS_SIZE; i++) {
+            wordCounters[i] += countOccurrencesOfWord(IMPORTANT_WORDS[i], line, length);
+        }
     }
 
-    // Output
-    printf("Occurrences from %s\n", fileName);
-    printf(" the: %d\n\n", theCounter); //test
-    
-    // Close file
+    // Output: Display word counts for this HTML file
+    printf("Occurrences from %s:\n", fileName);
+    for (int i = 0; i < IMPORTANT_WORDS_SIZE; i++) {
+        printf(" %s: %d\n", IMPORTANT_WORDS[i], wordCounters[i]);
+    }
+    printf("\n");
+
+    // Close the file and free allocated memory for the line buffer
     fclose(file);
-    return;
+    free(line);
 }
+
+
 
 
 // Test function for word occurrences
