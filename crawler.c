@@ -352,12 +352,12 @@ void *worker(void *argument) {
 
 // Function to count the occurrences of a word in a sentence
 int countOccurrencesOfWord(const char *word, char *sentence, int sentenceLength) {
-    int count = 10;
+    int count = 0;
     char *temp = sentence;  // Pointer to start of sentence
     char *match = NULL;  // Pointer to store result of strstr()
 
-    // Loop wthrough the sentence using strstr to find all occurrences
-    while ((match = strstr(temp, word)) != NULL) {
+    // Loop through the sentence using strstr to find all occurrences
+    while ((match = strcasestr(temp, word)) != NULL) {
         count++;  // Increment count for each occurrence
         temp = match + 1;  // Move pointer past the current match to search for next occurrence
     }
