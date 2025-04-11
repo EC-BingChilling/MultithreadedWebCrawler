@@ -50,7 +50,8 @@ const char * IMPORTANT_WORDS[] = {"data", "science", "algorithm"};
 char **parseFile(size_t *links);
 
 // Reads contents of stored html files
-void parseHTML(char *fileName);
+void parseHTML(char *fileName, const char *url);
+
 
 // Function to fetch URL using libcurl
 void fetch_url(const char *url);
@@ -383,7 +384,8 @@ int countOccurrencesOfWord(const char * word, char * sentence, int sentenceLengt
 }
 
 
-void parseHTML(char *fileName)
+void parseHTML(char *fileName, const char *url)
+
 {
     // Precondition: Input the HTML file name.
     // Postcondition: Print to the console word count results.
@@ -413,7 +415,7 @@ void parseHTML(char *fileName)
     }
 
     // Output: Display word counts for this HTML file
-    printf("Occurrences from %s:\n", fileName);
+    printf("Occurrences from %s (URL: %s):\n", fileName, url);
     for (int i = 0; i < IMPORTANT_WORDS_SIZE; i++) {
         printf(" %s: %d\n", IMPORTANT_WORDS[i], wordCounters[i]);
     }
@@ -512,7 +514,7 @@ int main(void)
     // Still needs the actual important words, which may vary
     for (int i = 0; i < urlNum; i++)
     {   
-        parseHTML(jobs[i].contentFilename);
+        parseHTML(jobs[i].contentFilename, jobs[i].link);
     }
 
 
