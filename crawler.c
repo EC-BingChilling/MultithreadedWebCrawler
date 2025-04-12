@@ -147,7 +147,7 @@ void fetchUrlToStore(char *url, const char * fileName) {
         if (res != CURLE_OK) {
             fprintf(stderr, "Failed to fetch %s: %s\n", url, curl_easy_strerror(res));
         } else {
-            printf("%s content successfully written to %s\n", url, fileName);
+            printf("%s Content successfully written to %s\n", url, fileName);
         }
     
         /* close the file */
@@ -319,7 +319,7 @@ struct JobQueueInfo getJobWithFifo(const struct Job jobs[], int numJobs) {
         info.hasJob = false;
     }
 
-    pthread_mutex_unlock(&LOCK); 
+    pthread_mutex_unlock(&LOCK);
 
     return info;
 }
@@ -332,7 +332,7 @@ void * worker(void * argument) {
     int numJobs = args->numJobs;
     struct Job * jobs = args->jobs;
 
-    for (int count = 0; count < getMaxWorkPerThread(numJobs, NUM_THREADS); count++) {
+    for (int count = 0; count < numJobs; count++) {
         struct JobQueueInfo temp = getJobWithFifo(jobs, numJobs);
 
         if (temp.hasJob) {
@@ -341,6 +341,7 @@ void * worker(void * argument) {
             fetchUrlToStore(job.link, job.contentFilename);
             
         } else {
+            return NULL;
             // printf("\nNo job available\n");
         }
         
@@ -350,6 +351,7 @@ void * worker(void * argument) {
 
 // Function to count the occurrences of a word in a sentence
 int countOccurrencesOfWord(const char * word, char * sentence, int sentenceLength) {
+    // Make substr and temp bigger than word and sentences
     char substr[strlen(word) + 10];
     char temp[strlen(sentence) + 10];
 
@@ -427,8 +429,6 @@ void parseHTML(char *fileName, const char *url)
 }
 
 
-
-
 // Test function for word occurrences
 int testWordOccurrences() {
     char sentence[] = "<p>A <b>frog</b> is any member of a diverse and largely <a href=\"/wiki/Carnivore\" title=\"Carnivore\">carnivorous</a> group of short-bodied, tailless <a href=\"/wiki/Amphibian\" title=\"Amphibian\">amphibians</a> composing the <a href=\"/wiki/Order_(biology)\" title=\"Order (biology)\">order</a> <b>Anura</b><sup id=\"cite_ref-AOTW_1-0\" class=\"reference\"><a href=\"#cite_note-AOTW-1\"><span class=\"cite-bracket\">[</span>1<span class=\"cite-bracket\">]</span></a></sup> (coming from the <a href=\"/wiki/Ancient_Greek\" title=\"Ancient Greek\">Ancient Greek</a> <span title=\"Ancient Greek (to 1453)-language text\"><span lang=\"grc\">ἀνούρα</span></span>, literally 'without tail').</p>";
@@ -494,7 +494,7 @@ int main(void)
     // Use pthreads to handle multiple web page fetches in parallel
     for (int i = 0; i < NUM_THREADS; i++) {
         if(pthread_create(&tid[i], NULL, &worker, &args) != 0) {
-            perror("Failed to creater thread");
+            perror("Failed to create thread");
         }
     }
 
