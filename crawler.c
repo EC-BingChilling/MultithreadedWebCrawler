@@ -363,7 +363,8 @@ int countOccurrencesOfWord(const char *word, char *sentence, int sentenceLength)
     char substr[strlen(word) + 10];
     char temp[strlen(sentence) + 10];
 
-    // Correct for additional space (" meow" is valid " meowmeow" is not)
+    // Correct for additional space (" meow" is valid " meowmeow" is not) this makes "meow" = "meow"
+    //stract(sentence, space);
     sprintf(temp, " %s ", sentence);
     sprintf(substr, " %s ", word);
 
@@ -386,7 +387,7 @@ int countOccurrencesOfWord(const char *word, char *sentence, int sentenceLength)
     // Count all substrings in line
     while (tmp = strstr(tmp, substr)) {
         count++;
-        tmp++;  // Increment temp pointer to avoid infinite loop
+        tmp++;  // Increment temp pointer to remove first element making temp no longer valid substr if it is last remaining substr (avoid infinite loop)
     }
 
     return count;
@@ -396,22 +397,31 @@ int countOccurrencesOfWord(const char *word, char *sentence, int sentenceLength)
 
 void *countWordOccurrences(void *arg) {
     ThreadData *data = (ThreadData *)arg;
+
+    // Count how many times the target word appears in the sentence
     int wordCount = countOccurrencesOfWord(data->word, data->sentence, data->sentenceLength);
 
     // Lock the mutex before updating the counter
     pthread_mutex_lock(&mutex);
-    *(data->counter) += wordCount;
-    pthread_mutex_unlock(&mutex);
+    *(data->counter) += wordCount; // Safely update the shared counter
+    pthread_mutex_unlock(&mutex); // Unlocks mutex after the counter has been updated
 
     free(data); // Free the allocated memory for the thread data
     return NULL;
 }
 
-void parseHTML(char *fileName, const char *url) {
+void parseHTML(char *fileName, const char *url) 
+{
+
+    // Precondition Input the HTML file nane.
+    // Postcondition print to the console word count results.
+
+    //Array to hold conters for each word in the IMPORTANT_WORDS list
     int wordCounters[IMPORTANT_WORDS_SIZE];
     for (int i = 0; i < IMPORTANT_WORDS_SIZE; i++) {
-        wordCounters[i] = 0;
+        wordCounters[i] = 0; // Initialize counters to zero
     }
+
     // Open the HTML file in read-only mode
     FILE *file = fopen(fileName, "r");
     
@@ -421,9 +431,10 @@ void parseHTML(char *fileName, const char *url) {
         exit(1);
     }
 
-    char *line = NULL;
-    size_t length = 0;
+    char *line = NULL; // Create a string to store each line for processing
+    size_t length = 0; // track the length of the line read
 
+    // Read the file line by line
     while (getline(&line, &length, file) != -1) {
         pthread_t threads[NUM_THREADS];
         int threadCount = 0;
@@ -450,12 +461,13 @@ void parseHTML(char *fileName, const char *url) {
         }
     }
 
-    // Output word counts
+    // Output: Display word counts for this HTML file
     printf("Occurrences from %s (URL: %s):\n", fileName, url);
     for (int i = 0; i < IMPORTANT_WORDS_SIZE; i++) {
         printf(" %s: %d\n", IMPORTANT_WORDS[i], wordCounters[i]);
     }
 
+    // Close the file and free allocated memory
     fclose(file);
     free(line);
 }
