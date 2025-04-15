@@ -285,7 +285,6 @@ void getJobs(struct Job jobs[], int numUrl, char **urlArray) {
         // Create the filename as "page<count>.html"
         sprintf(filename, "page%d.html", i + 1);
 
-        // Print the filename
         jobs[i].contentFilename = (char *)calloc(fileNameLen, sizeof(char));
         
         jobs[i] = (struct Job){
