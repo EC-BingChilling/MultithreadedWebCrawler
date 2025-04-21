@@ -312,6 +312,7 @@ struct JobQueueInfo getJobWithFifo(const struct Job jobs[], int numJobs) {
     static int fifoIndex = 0;
     struct JobQueueInfo info; // returns whether there was a hasJob or the actual job if any
 
+    // check to make sure we havent run out of jobs, set hasjob to true, increment fifoIndex so the next thread gets the job
     if (fifoIndex < numJobs) {
         info.hasJob = true;
         info.job = jobs[fifoIndex];
@@ -327,14 +328,16 @@ struct JobQueueInfo getJobWithFifo(const struct Job jobs[], int numJobs) {
 
 
 // Worker function for handling the fetch and storage tasks for each URL
+// ask job queue for a task, if task exists, fetch the url and save it
 void * worker(void * argument) {
+    // cast void input into your known ThreadArgs struct, give each thread access to jobs[] list and numJobs (total)
     struct ThreadArgs * args = (struct ThreadArgs *)argument; // Build ThreadArgs for worker using type casting
 
     int numJobs = args->numJobs;
     struct Job * jobs = args->jobs;
 
-    for (int count = 0; count < numJobs; count++) {
-        struct JobQueueInfo temp = getJobWithFifo(jobs, numJobs);
+    for (int count = 0; count < numJobs; count++) { // try at most numJobs times to pull work, getJobWithFifo() will return hasJob = false and thread exists, thats why it doesnt loop infinitely
+        struct JobQueueInfo temp = getJobWithFifo(jobs, numJobs); // fetches a job safely one at a time across threads using the mutex lock inside getJobWithFifo
 
         if (temp.hasJob) {
             struct Job job = temp.job;
@@ -353,20 +356,21 @@ void * worker(void * argument) {
 // Function to count the occurrences of a word in a sentence
 int countOccurrencesOfWord(const char * word, char * sentence, int sentenceLength) {
     // Make substr and temp bigger than word and sentences
-    char substr[strlen(word) + 10];
+    char substr[strlen(word) + 10]; 
     char temp[strlen(sentence) + 10];
 
     // Correct for additional space (" meow" is valid " meowmeow" is not) this makes " meow" = " meow "
     // strcat(sentence, space);
+    // matches whole words, "data" matches "data" and not "metadata"
     sprintf(temp, " %s ", sentence);
     sprintf(substr, " %s ", word);
     
     for (int count = 0; count < strlen(substr); count++) {
-        substr[count] = tolower(substr[count]);
+        substr[count] = tolower(substr[count]); // make everything lowercase "Data" becomes "data"
     }
 
     for (int count = 0; count < strlen(temp); count++) {
-        if (!isalpha(temp[count])) {
+        if (!isalpha(temp[count])) { // convert symbols punctuations and numbers to spaces, <p> becomes just p
             temp[count] = ' ';
         }
         
@@ -433,13 +437,13 @@ void parseHTML(char *fileName, const char *url)
 // Test function for word occurrences
 int testWordOccurrences() {
     char sentence[] = "<p>A <b>frog</b> is any member of a diverse and largely <a href=\"/wiki/Carnivore\" title=\"Carnivore\">carnivorous</a> group of short-bodied, tailless <a href=\"/wiki/Amphibian\" title=\"Amphibian\">amphibians</a> composing the <a href=\"/wiki/Order_(biology)\" title=\"Order (biology)\">order</a> <b>Anura</b><sup id=\"cite_ref-AOTW_1-0\" class=\"reference\"><a href=\"#cite_note-AOTW-1\"><span class=\"cite-bracket\">[</span>1<span class=\"cite-bracket\">]</span></a></sup> (coming from the <a href=\"/wiki/Ancient_Greek\" title=\"Ancient Greek\">Ancient Greek</a> <span title=\"Ancient Greek (to 1453)-language text\"><span lang=\"grc\">ἀνούρα</span></span>, literally 'without tail').</p>";
-    int num = countOccurrencesOfWord("frog", sentence, strlen(sentence));
+    int num = countOccurrencesOfWord("frog", sentence, strlen(sentence)); // test if frog appears once, ensure it works with tags and links
     assert(num == 1);
 
-    num = countOccurrencesOfWord("meow", "homeowner", strlen("homeowner"));
+    num = countOccurrencesOfWord("meow", "homeowner", strlen("homeowner")); // test that substrings like meow and homeowner dont match
     assert(num == 0);
 
-    num = countOccurrencesOfWord("Word", "Word", strlen("Word"));
+    num = countOccurrencesOfWord("Word", "Word", strlen("Word")); // case insensitive match, expect it to be found
     assert(num == 1);  
 
     num = countOccurrencesOfWord("word", "xyz word abc", strlen("xyz word abc"));
@@ -448,13 +452,13 @@ int testWordOccurrences() {
     num = countOccurrencesOfWord("Word", "Word", strlen("Word"));
     assert(num == 1);  
 
-    num = countOccurrencesOfWord("Word", "", 0);
+    num = countOccurrencesOfWord("Word", "", 0); // empty input test, must gracefully handle
     assert(num == 0);  
 
     num = countOccurrencesOfWord("Word", "word Word", strlen("word Word"));
     assert(num == 2);  
 
-    num = countOccurrencesOfWord("sub", "substring sub", strlen("substring sub"));
+    num = countOccurrencesOfWord("sub", "substring sub", strlen("substring sub")); // test if only exact word match count, first 'sub' embedded in 'substring' shouldnt be counted
     assert(num == 1);
 
     // Note how the following fails since 123 are numbers, however we dont care about this case since all valid words being searched will not appear like this
@@ -476,15 +480,15 @@ void runtests() {
 // main
 int main(void)
 {
-    char **urlArray;                    // establish array of strings
+    char **urlArray;                    // establish array of strings, pointer to pointer to char
     size_t urlNum;                      // # of urls in said array
 
-    pthread_t tid[NUM_THREADS];
+    pthread_t tid[NUM_THREADS]; // tid[i] tracks each thread spun up with pthread_create
 
     curl_global_init(CURL_GLOBAL_ALL);
 
     // 1. Input Parsing: Read URLs from a file
-    urlArray = parseFile(&urlNum);  //we pass in the address with & to allow the function to change urlNum
+    urlArray = parseFile(&urlNum);  //we pass in the address with & to allow the function to change urlNum read urls.txt line by line, store each URL in urlArray and return the amount of times we found urlNum
 
     // This Struct will contain for each url: url, html file name, said name's length, url length
     struct Job jobs[urlNum];            // Array of 'urlNum' Job structs
