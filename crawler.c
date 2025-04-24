@@ -38,15 +38,16 @@ struct ThreadArgs {
     int numJobs;
     struct Job * jobs;
 };
+
 typedef struct {
     const char *word;
-    char *sentence;
+    const char *sentence;
     int sentenceLength;
-    int *counter;
+    int localCount;  // thread-local count
 } ThreadData;
 
 
-const int IMPORTANT_WORDS_SIZE = 3;
+const int IMPORTANT_WORDS_SIZE = 5;
 const char * IMPORTANT_WORDS[] = {"data", "science", "algorithm"};
 
 
@@ -196,7 +197,7 @@ char **parseFile(size_t *links)
     {
         c = fgetc(file);
 
-        if (ferror(file))
+        if (ferror(file));
         {
             perror("Error message");                        // thanks to errno.h, string.h, and extern int errno,
             fclose(file);                                   // we don't have to type our own messages.
@@ -363,8 +364,7 @@ int countOccurrencesOfWord(const char *word, char *sentence, int sentenceLength)
     char substr[strlen(word) + 10];
     char temp[strlen(sentence) + 10];
 
-    // Correct for additional space (" meow" is valid " meowmeow" is not) this makes "meow" = "meow"
-    //stract(sentence, space);
+    // Correct for additional space (" meow" is valid " meowmeow" is not)
     sprintf(temp, " %s ", sentence);
     sprintf(substr, " %s ", word);
 
@@ -387,7 +387,7 @@ int countOccurrencesOfWord(const char *word, char *sentence, int sentenceLength)
     // Count all substrings in line
     while (tmp = strstr(tmp, substr)) {
         count++;
-        tmp++;  // Increment temp pointer to remove first element making temp no longer valid substr if it is last remaining substr (avoid infinite loop)
+        tmp++;  // Increment temp pointer to avoid infinite loop
     }
 
     return count;
@@ -397,31 +397,15 @@ int countOccurrencesOfWord(const char *word, char *sentence, int sentenceLength)
 
 void *countWordOccurrences(void *arg) {
     ThreadData *data = (ThreadData *)arg;
-
-    // Count how many times the target word appears in the sentence
-    int wordCount = countOccurrencesOfWord(data->word, data->sentence, data->sentenceLength);
-
-    // Lock the mutex before updating the counter
-    pthread_mutex_lock(&mutex);
-    *(data->counter) += wordCount; // Safely update the shared counter
-    pthread_mutex_unlock(&mutex); // Unlocks mutex after the counter has been updated
-
-    free(data); // Free the allocated memory for the thread data
-    return NULL;
+    data->localCount = countOccurrencesOfWord(data->word, data->sentence, data->sentenceLength);
+    return data;  // Return the struct so we can retrieve localCount
 }
 
-void parseHTML(char *fileName, const char *url) 
-{
-
-    // Precondition Input the HTML file nane.
-    // Postcondition print to the console word count results.
-
-    //Array to hold conters for each word in the IMPORTANT_WORDS list
+void parseHTML(char *fileName, const char *url) {
     int wordCounters[IMPORTANT_WORDS_SIZE];
     for (int i = 0; i < IMPORTANT_WORDS_SIZE; i++) {
-        wordCounters[i] = 0; // Initialize counters to zero
+        wordCounters[i] = 0;
     }
-
     // Open the HTML file in read-only mode
     FILE *file = fopen(fileName, "r");
     
@@ -431,43 +415,40 @@ void parseHTML(char *fileName, const char *url)
         exit(1);
     }
 
-    char *line = NULL; // Create a string to store each line for processing
-    size_t length = 0; // track the length of the line read
+    char *line = NULL;
+    size_t length = 0;
 
-    // Read the file line by line
     while (getline(&line, &length, file) != -1) {
         pthread_t threads[NUM_THREADS];
         int threadCount = 0;
+        ThreadData *threadData[IMPORTANT_WORDS_SIZE];
 
-        // For each line, create a thread for each important word
         for (int i = 0; i < IMPORTANT_WORDS_SIZE; i++) {
-            if (threadCount < NUM_THREADS) {
-                // Prepare thread data
-                ThreadData *data = (ThreadData *)malloc(sizeof(ThreadData));
-                data->word = IMPORTANT_WORDS[i];
-                data->sentence = line;
-                data->sentenceLength = length;
-                data->counter = &wordCounters[i];
+            threadData[i] = malloc(sizeof(ThreadData));
+            threadData[i]->word = IMPORTANT_WORDS[i];
+            threadData[i]->sentence = line;
+            threadData[i]->sentenceLength = length;
+            threadData[i]->localCount = 0;
 
-                // Create a thread to count occurrences of the word
-                pthread_create(&threads[threadCount], NULL, countWordOccurrences, (void *)data);
-                threadCount++;
-            }
+            pthread_create(&threads[i], NULL, countWordOccurrences, threadData[i]);
         }
 
         // Join all threads to make sure the counting is completed
-        for (int i = 0; i < threadCount; i++) {
-            pthread_join(threads[i], NULL);
+        for (int i = 0; i < IMPORTANT_WORDS_SIZE; i++) {
+            ThreadData *result;
+            pthread_join(threads[i], (void **)&result);
+            wordCounters[i] += result->localCount;
+            free(result);
         }
+    
     }
 
-    // Output: Display word counts for this HTML file
+    // Output word counts
     printf("Occurrences from %s (URL: %s):\n", fileName, url);
     for (int i = 0; i < IMPORTANT_WORDS_SIZE; i++) {
         printf(" %s: %d\n", IMPORTANT_WORDS[i], wordCounters[i]);
     }
 
-    // Close the file and free allocated memory
     fclose(file);
     free(line);
 }
