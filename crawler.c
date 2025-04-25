@@ -47,8 +47,8 @@ typedef struct {
 
 
 
-const int IMPORTANT_WORDS_SIZE = 3;
-const char * IMPORTANT_WORDS[] = {"data", "science", "algorithm"};
+const int IMPORTANT_WORDS_SIZE = 5;
+const char * IMPORTANT_WORDS[] = {"data", "science", "algorithm","restore","information"};
 
 
 
@@ -441,29 +441,34 @@ void parseHTML(char *fileName, const char *url)
     char *line = NULL; // Create a string to stor each line
     size_t length = 0; // Track the length of the line read
 // read file line by line
-    while (getline(&line, &length, file) != -1) {
-        pthread_t threads[IMPORTANT_WORDS_SIZE];
-        ThreadData *threadDataArray[IMPORTANT_WORDS_SIZE];
+while (getline(&line, &length, file) != -1) {
+    int i = 0;
+    while (i < IMPORTANT_WORDS_SIZE) {
+        pthread_t threads[NUM_THREADS];
+        ThreadData *threadDataArray[NUM_THREADS];
+        int threadCount = 0;
 
-        for (int i = 0; i < IMPORTANT_WORDS_SIZE; i++) {
+        // Create up to NUM_THREADS threads
+        for (; threadCount < NUM_THREADS && i < IMPORTANT_WORDS_SIZE; threadCount++, i++) {
             ThreadData *data = malloc(sizeof(ThreadData));
             data->word = IMPORTANT_WORDS[i];
             data->sentence = line;
             data->sentenceLength = length;
             data->localCount = 0;
 
-            threadDataArray[i] = data;
+            threadDataArray[threadCount] = data;
 
-            if (pthread_create(&threads[i], NULL, countWordOccurrences, (void *)data) != 0) {
+            if (pthread_create(&threads[threadCount], NULL, countWordOccurrences, (void *)data) != 0) {
                 perror("Failed to create thread");
                 free(data);
+                threadCount--;  // Only count successful threads
             }
         }
 
-        // Join threads and collect their local counts
-        for (int i = 0; i < IMPORTANT_WORDS_SIZE; i++) {
+        // Join only the threads that were created
+        for (int j = 0; j < threadCount; j++) {
             void *ret;
-            pthread_join(threads[i], &ret);
+            pthread_join(threads[j], &ret);
 
             ThreadData *data = (ThreadData *)ret;
             int index = findWordIndex(IMPORTANT_WORDS, IMPORTANT_WORDS_SIZE, data->word);
@@ -474,6 +479,8 @@ void parseHTML(char *fileName, const char *url)
             free(data);
         }
     }
+}
+
 
     printf("Occurrences from %s (URL: %s):\n", fileName, url);
     for (int i = 0; i < IMPORTANT_WORDS_SIZE; i++) {
