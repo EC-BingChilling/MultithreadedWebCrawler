@@ -188,7 +188,7 @@ char **parseFile(size_t *links)
 
     do 
     {
-        c = fgetc(file);
+        c = fgetc(file); // read in a character one at a time
 
         if (ferror(file))
         {
@@ -485,16 +485,16 @@ int main(void)
 
     pthread_t tid[NUM_THREADS]; // tid[i] tracks each thread spun up with pthread_create
 
-    curl_global_init(CURL_GLOBAL_ALL);
+    curl_global_init(CURL_GLOBAL_ALL); // initialize curl resources
 
     // 1. Input Parsing: Read URLs from a file
     urlArray = parseFile(&urlNum);  //we pass in the address with & to allow the function to change urlNum read urls.txt line by line, store each URL in urlArray and return the amount of times we found urlNum
 
     // This Struct will contain for each url: url, html file name, said name's length, url length
-    struct Job jobs[urlNum];            // Array of 'urlNum' Job structs
+    struct Job jobs[urlNum];            // Array of 'urlNum' Job structs (ex. 10 urls is 10 structs)
     getJobs(jobs, urlNum, urlArray);    // Populate the structs with data
     
-    struct ThreadArgs args = {urlNum, jobs};
+    struct ThreadArgs args = {urlNum, jobs}; // create an instance of Threadargs
     
     // Use pthreads to handle multiple web page fetches in parallel
     for (int i = 0; i < NUM_THREADS; i++) {
