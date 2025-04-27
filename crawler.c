@@ -39,6 +39,13 @@ struct ThreadArgs {
     struct Job * jobs;
 };
 
+typedef struct {
+    const char *word;
+    const char *sentence;
+    int sentenceLength;
+    int localCount; // thread-local count
+} ThreadData;
+
 const int IMPORTANT_WORDS_SIZE = 3;
 const char * IMPORTANT_WORDS[] = {"data", "science", "algorithm"};
 
@@ -75,7 +82,13 @@ struct JobQueueInfo getJobWithFifo(const struct Job jobs[], int numJobs);
 void *worker(void *argument);
 
 // Function to count the occurrences of a word in a sentence
-int countOccurrencesOfWord(const char *word, char *sentence, int sentenceLength);
+int countOccurrencesOfWord(const char *word, const char *sentence, int sentenceLength);
+
+// Funtion to assgin each word being counted to its own thread
+void *countWordOccurrences(void *arg);
+
+// Helper function that returns the index of a target word in an array of words
+int findWordIndex(const char **words, int size, const char *target);
 
 // Test function for word occurrences
 int testWordOccurrences();
@@ -349,7 +362,7 @@ void * worker(void * argument) {
 
 
 // Function to count the occurrences of a word in a sentence
-int countOccurrencesOfWord(const char * word, char * sentence, int sentenceLength) {
+int countOccurrencesOfWord(const char * word, const char * sentence, int sentenceLength) {
     char substr[strlen(word) + 10];
     char temp[strlen(sentence) + 10];
 
@@ -383,6 +396,26 @@ int countOccurrencesOfWord(const char * word, char * sentence, int sentenceLengt
     return count;
 }
 
+void *countWordOccurrences(void *arg) {
+    ThreadData *data = (ThreadData *)arg;
+
+    // Count word occurrences in the line
+    data->localCount = countOccurrencesOfWord(data->word, data->sentence, data->sentenceLength);
+
+    // Return the data pointer with count set
+    return data;
+}
+
+// Helper function that returns the index of a target word in an array of words
+int findWordIndex(const char **words, int size, const char *target) {
+    // Iterate through the list of words
+    for (int i = 0; i < size; i++) {
+        // If a match is found, return the index
+        if (strcmp(words[i], target) == 0)
+            return i;
+    }
+    return -1;
+}
 
 void parseHTML(char *fileName, const char *url)
 
@@ -408,9 +441,42 @@ void parseHTML(char *fileName, const char *url)
 
     // Read the file line by line
     while (getline(&line, &length, file) != -1) {
-        // For each line, count the occurrences of every important word
-        for (int i = 0; i < IMPORTANT_WORDS_SIZE; i++) {
-            wordCounters[i] += countOccurrencesOfWord(IMPORTANT_WORDS[i], line, length);
+        int i = 0;
+        while (i < IMPORTANT_WORDS_SIZE) {
+            pthread_t threads[NUM_THREADS];
+            ThreadData *threadDataArray[NUM_THREADS];
+            int threadCount = 0;
+    
+            // Create up to NUM_THREADS threads
+            for (; threadCount < NUM_THREADS && i < IMPORTANT_WORDS_SIZE; threadCount++, i++) {
+                ThreadData *data = malloc(sizeof(ThreadData));
+                data->word = IMPORTANT_WORDS[i];
+                data->sentence = line;
+                data->sentenceLength = length;
+                data->localCount = 0;
+    
+                threadDataArray[threadCount] = data;
+    
+                if (pthread_create(&threads[threadCount], NULL, countWordOccurrences, (void *)data) != 0) {
+                    perror("Failed to create thread");
+                    free(data);
+                    threadCount--;  // Only count successful threads
+                }
+            }
+    
+            // Join only the threads that were created
+            for (int j = 0; j < threadCount; j++) {
+                void *ret;
+                pthread_join(threads[j], &ret);
+    
+                ThreadData *data = (ThreadData *)ret;
+                int index = findWordIndex(IMPORTANT_WORDS, IMPORTANT_WORDS_SIZE, data->word);
+                if (index != -1) {
+                    wordCounters[index] += data->localCount;
+                }
+    
+                free(data);
+            }
         }
     }
 
