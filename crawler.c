@@ -42,7 +42,7 @@ typedef struct {
     const char *word;
     const char *sentence;
     int sentenceLength;
-    int localCount; // thread-local count
+    int localWordCount; // thread-local count
 } ThreadData;
 
 // keywords we count in each HTML file, stored in an array so we can loop it over when counting
@@ -406,7 +406,7 @@ void *countWordOccurrences(void *arg) {
     ThreadData *data = (ThreadData *)arg;
 
     // Count word occurrences in the line
-    data->localCount = countOccurrencesOfWord(data->word, data->sentence, data->sentenceLength);
+    data->localWordCount = countOccurrencesOfWord(data->word, data->sentence, data->sentenceLength);
 
     // Return the data pointer with count set
     return data;
@@ -458,7 +458,7 @@ void parseHTML(char *fileName, const char *url)
                 data->word = IMPORTANT_WORDS[i];
                 data->sentence = line;
                 data->sentenceLength = length;
-                data->localCount = 0;
+                data->localWordCount = 0;
 
                 threadDataArray[threadCount] = data;
 
@@ -477,7 +477,7 @@ void parseHTML(char *fileName, const char *url)
                 ThreadData *data = (ThreadData *)ret;
                 int index = findWordIndex(IMPORTANT_WORDS, IMPORTANT_WORDS_SIZE, data->word);
                 if (index != -1) {
-                    wordCounters[index] += data->localCount;
+                    wordCounters[index] += data->localWordCount;
                 }
 
                 free(data);
