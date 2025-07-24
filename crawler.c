@@ -358,7 +358,6 @@ void * worker(void * argument) {
             
         } else {
             return NULL;
-            // printf("\nNo job available\n");
         }
         
     }
@@ -552,7 +551,7 @@ int main(void)
     curl_global_init(CURL_GLOBAL_ALL); // initialize curl resources
 
     // 1. Input Parsing: Read URLs from a file
-    urlArray = parseFile(&urlNum);  //we pass in the address with & to allow the function to change urlNum read urls.txt line by line, store each URL in urlArray and return the amount of times we found urlNum
+    urlArray = parseFile(&urlNum); 
 
     // This Struct will contain for each url: url, html file name, said name's length, url length
     struct Job jobs[urlNum];            // Array of 'urlNum' Job structs (ex. 10 urls is 10 structs)
@@ -607,22 +606,3 @@ int main(void)
 
     return 0;
 }
-
-
-// int main(void)
-// {
-//     FILE *file = fopen("urls.txt","r"); // open urls.txt in read mode
-//     if (file == NULL){ // check if fopen failed
-//         fprintf(stderr, "Error: Could not open urls.txt \n"); // print error message to standard ouput
-//         return 1; // exit with error status
-//     }
-
-//     char url[1024]; // buffer to store each line
-//     while (fgets(url, sizeof(url),file)){ // read each line
-//         url[strcspn(url, "\n")] = 0; // remove newline character
-//         fetch_url(url); // call fetch url() to get the webpage
-//     }
-//     fclose(file); // close file
-//     return 0; // exit successfully
-// }
-//
